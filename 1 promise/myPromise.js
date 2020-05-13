@@ -1,7 +1,12 @@
 /**
  * author:ShiSufei
  * time:2020/05/12 16:16
+ * editRecord:
+ *     2020/05/13 10:35 例用Symbol将triggerResolve、triggerFulfilled、triggerReject改为了私有方法
  */
+const  triggerResolve = Symbol('triggerResolve')
+const  triggerFulfilled = Symbol('triggerFulfilled')
+const  triggerReject = Symbol('triggerReject')
 
 class myPromise {
   constructor(handleFunc) {
@@ -10,10 +15,10 @@ class myPromise {
     this.fulfilledList = []
     this.rejectedList = []
 
-    handleFunc(this.triggerResolve.bind(this), this.triggerReject.bind(this))
+    handleFunc(this[triggerResolve].bind(this), this[triggerReject].bind(this))
   }
 
-  triggerResolve (val) {
+  [triggerResolve] (val) {
     setTimeout(() => {
       if (this.status !== 'pending') return
       if (val instanceof myPromise) {
@@ -24,17 +29,17 @@ class myPromise {
       } else { // resolve 方法传入的是普通值
         this.status = 'fulfilled'
         this.value = val
-        this.triggerFulfilled(val)
+        this[triggerFulfilled](val)
       }
     }, 0)
   }
 
-  triggerFulfilled (val) { // val ??
+  [triggerFulfilled] (val) { // val ??
     this.fulfilledList.forEach(item => item(val))
     this.fulfilledList = []
   }
 
-  triggerReject (val) {
+  [triggerReject] (val) {
     this.rejectedList.forEach(item => item(val))
     this.rejectedList = []
   }
@@ -93,7 +98,6 @@ class myPromise {
     return this.then(null, onRejected)
   }
 
-
   static resolve (value) {
     if (value instanceof myPromise) return value
     return new myPromise(resolve => resolve(value))
@@ -151,3 +155,5 @@ class myPromise {
     })
   }
 }
+
+module.exports = myPromise
