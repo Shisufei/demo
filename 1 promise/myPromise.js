@@ -3,6 +3,7 @@
  * time:2020/05/12 16:16
  * editRecord:
  *     2020/05/13 10:35 例用Symbol将triggerResolve、triggerFulfilled、triggerReject改为了私有方法
+ *     2020/05/13 15:32 增加“如果promise和x指向同一对象，以TypeError为据因拒绝执行promise”
  */
 const  triggerResolve = Symbol('triggerResolve')
 const  triggerFulfilled = Symbol('triggerFulfilled')
@@ -46,13 +47,19 @@ class myPromise {
 
   then (onFulfilled, onRejected) {
     const { value, status } = this // this指向new出来的实例
-    return new myPromise((onNextFulfilled, onNextRejected) => {
+    const promiseInstance = new myPromise((onNextFulfilled, onNextRejected) => {
 
       function onFinalFulfilled (val) { // 内部闭包函数
         if (typeof onFulfilled !== 'function') { // onFulfilled不是个函数，则直接执行下一个promise
           onNextFulfilled(val)
         } else { // onFulfilled是个函数
           const res = onFulfilled(val) // 先执行这一步回调的结果
+
+          // 如果promise和x指向同一对象，以TypeError为据因拒绝执行promise
+          if( res === promiseInstance){
+            throw new TypeError('')
+          }
+
           if (res instanceof myPromise) { // res返回了一个promise，则通过这个res的状态来执行下一个promise的状态
             res.then(onNextFulfilled, onNextRejected) // res为resolve状态则执行下一个promise的resolve状态
           } else { // res返回了一个普通值，比如字符串等
@@ -93,6 +100,7 @@ class myPromise {
         }
       }
     })
+    return promiseInstance
   }
   catch (onRejected) {
     return this.then(null, onRejected)
